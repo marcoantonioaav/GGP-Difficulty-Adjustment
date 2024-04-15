@@ -19,11 +19,14 @@ public class HybridMinimaxMCTS extends AI {
     private float mean = 1f;
     private float standardDeviation = 0f;
 
-    private int evaluationPlayouts = 5;//15
-    private int maxPlayoutDepth = 50;//100
+    private int evaluationPlayouts = 15;//15
+    private int maxPlayoutDepth = 100;//100
 
     private List<Integer> reachedDepths = new ArrayList<>();
     private List<Long> spentTimes = new ArrayList<>();
+    private int playouts = 0;
+    private int prunedPlayouts = 0;
+    private int movesAvoided = 0;
 
     public static final float MAX = 1;
     public static final float MIN = -MAX;
@@ -53,6 +56,14 @@ public class HybridMinimaxMCTS extends AI {
 
     public int getFirstReachedDepth() {
         return reachedDepths.get(0);
+    }
+
+    public float getMeanMovesAvoided() {
+        return (float)movesAvoided/(float)playouts;
+    }
+
+    public float getMeanPrunedPlayouts() {
+        return (float)prunedPlayouts/(float)playouts;
     }
 
     public int getMeanReachedDepth() {
@@ -181,24 +192,47 @@ public class HybridMinimaxMCTS extends AI {
     }
 
     private float makePlayout(Context context, int startingPlayer) {
+        playouts++;
 		Context newContext = new Context(context);
 		int currentPlayer = startingPlayer;
         HashSet<Long> visitedStates = new HashSet<>();
         int depth = 0;
 		while(!newContext.trial().over() && depth < maxPlayoutDepth) {
-			Move move = getRandomMove(newContext, currentPlayer);
-			newContext.game().apply(newContext, move);
-            long stateHash = newContext.state().fullHash();
-            if(visitedStates.contains(stateHash) && !move.actions().get(0).isForced())
+			Move move = getRandomUniqueMove(newContext, currentPlayer, visitedStates);
+            if(move == null) {
+                prunedPlayouts++;
                 return NEUTRAL;
-            visitedStates.add(stateHash);
+            }
+			newContext.game().apply(newContext, move);
+            visitedStates.add(newContext.state().fullHash());
 			currentPlayer = 1 - currentPlayer;
             depth++;
 		}
+        if(depth == maxPlayoutDepth)
+            prunedPlayouts++;
 		return evaluateTerminalState(newContext);
 	}
 
-    private Move getRandomMove(Context context, int player) {
+    private Move getRandomUniqueMove(Context context, int player, HashSet<Long> visitedStates) {
+        FastArrayList<Move> legalMoves = game.moves(context).moves();
+        while(!legalMoves.isEmpty()) {
+            int r = ThreadLocalRandom.current().nextInt(legalMoves.size());
+            Move move = legalMoves.get(r);
+            Context newContext = new Context(context);
+            newContext.game().apply(newContext, move);
+            long stateHash = newContext.state().fullHash();
+            if(visitedStates.contains(stateHash) && !move.actions().get(0).isForced()) {
+                legalMoves.remove(r);
+                movesAvoided++;
+            }
+            else
+                return move;
+        }
+        return null;
+    }
+
+    @Deprecated
+    public Move getRandomMove(Context context, int player) {
 		FastArrayList<Move> legalMoves = game.moves(context).moves();
 		
 		if (!game.isAlternatingMoveGame())
@@ -215,5 +249,8 @@ public class HybridMinimaxMCTS extends AI {
 		this.player = playerID;
         this.reachedDepths.clear();
         this.spentTimes.clear();
+        this.movesAvoided = 0;
+        this.playouts = 0;
+        this.prunedPlayouts = 0;
 	}
 }

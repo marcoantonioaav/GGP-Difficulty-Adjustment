@@ -7,8 +7,8 @@ import search.mcts.playout.RandomPlayout;
 import search.mcts.selection.SelectionStrategy;
 import search.mcts.selection.UCB1;
 
-public class ModifiedUCT extends MCTS {
-    public ModifiedUCT(float mean, float standardDeviation) {
+public class StochasticUCT extends MCTS {
+    public StochasticUCT(float mean, float standardDeviation) {
         super(
             new UCB1(Math.sqrt(2.0)), 
             new RandomPlayout(200), 
@@ -18,7 +18,7 @@ public class ModifiedUCT extends MCTS {
         this.friendlyName = "UCT m:" + mean + " std:" + standardDeviation;
     }
 
-    public ModifiedUCT(SelectionStrategy selectionStrategy, PlayoutStrategy playoutStrategy,
+    public StochasticUCT(SelectionStrategy selectionStrategy, PlayoutStrategy playoutStrategy,
             BackpropagationStrategy backpropagationStrategy, FinalMoveSelectionStrategy finalMoveSelectionStrategy) {
         super(selectionStrategy, playoutStrategy, backpropagationStrategy, finalMoveSelectionStrategy);
     }
