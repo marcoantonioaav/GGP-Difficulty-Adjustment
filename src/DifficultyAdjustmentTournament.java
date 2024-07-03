@@ -15,31 +15,32 @@ public class DifficultyAdjustmentTournament {
 	private DifficultyAdjustmentTournament() {}
 
 	public static void main(final String[] args) {
-		float alpha = 3;
-		float beta_start = 2;
-		float beta_step = 1;
-		float beta_end = 5;
+		float alpha = 4;
+		float beta_start = 4;
+		float beta_step = 4;
+		float beta_end = 12;
 
 		//List<String> algs = List.of("UCT");
 		
 		List<String> GAME_NAMES = List.of("Tic-tac-toe.lud", "Tapatan.lud"/*, "Alquerque.lud", "Reversi.lud"*/);
+		//List<String> GAME_NAMES = List.of("Reversi.lud");
 		int MAX_STEPS = 100;
-		int NUM_GAMES = 20;
-		double THINKING_TIME = 3.0;
+		int NUM_GAMES = 50;
+		double THINKING_TIME = 1.0;
 		
 		for(String gameName : GAME_NAMES) {
 			System.out.println("New game.");
 			for (float beta = beta_start; beta <= beta_end; beta += beta_step) {
-				for (float multiplier = 1; multiplier <= 2; multiplier += 0.5f) {
+				//for (float multiplier = 1; multiplier <= 2; multiplier += 0.5f) {
 
 					float win_rate_sum = 0;
 					float lose_rate_sum = 0;
 					float game_count = 0;
 
 					System.out.println("beta: " + beta);
-					System.out.println("multiplier: " + multiplier);
+					//System.out.println("multiplier: " + multiplier);
 					
-					final BetaStochasticUCT agent1 = new BetaStochasticUCT(alpha*multiplier, beta*multiplier);
+					final BetaStochasticUCT agent1 = new BetaStochasticUCT(alpha, beta);
 					final BetaStochasticUCT agent2 = new BetaStochasticUCT(alpha, beta_start);
 					
 					final Game game = GameLoader.loadGameFromName(gameName);
@@ -97,7 +98,7 @@ public class DifficultyAdjustmentTournament {
 					System.out.println("===============================");
 					System.out.println("Game batch ended.");
 					System.out.println("===============================");
-				}
+				//}
 			}
 		}
 		
