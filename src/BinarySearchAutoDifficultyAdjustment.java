@@ -13,7 +13,6 @@ import search.minimax.AlphaBetaSearch;
 public class BinarySearchAutoDifficultyAdjustment {
 
     //calculate the maximum possible variance for the distribution list
-    //check why both statistical test do not give the same result
 	
 	private BinarySearchAutoDifficultyAdjustment() {}
 
