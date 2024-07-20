@@ -441,7 +441,6 @@ public class BinarySearchAutoDifficultyAdjustment {
             float p_value2 = baseDistribution2.p_value(unifiedDistribution2);
 
             if(p_value1 < STAT_P_VALUE || p_value2 < STAT_P_VALUE){
-                System.out.println("getDistributionUntilStatDiff");
                 if(p_value1 < STAT_P_VALUE){
                     System.out.println("P value statistically significant: " + p_value1);
                     System.out.println("Base distribution:" + baseDistributionName1);
@@ -453,8 +452,8 @@ public class BinarySearchAutoDifficultyAdjustment {
                 statisticallyDifferent = true;
             }
             else{
-                System.out.println("P value: " + p_value1);
-                System.out.println("P value 2: " + p_value2);
+                //System.out.println("P value: " + p_value1);
+                //System.out.println("P value 2: " + p_value2);
             }
             iterations += numGamesStep;
         }
@@ -572,12 +571,24 @@ public class BinarySearchAutoDifficultyAdjustment {
             if(distributions){
                 statistically_different = true;
             }
+            else{
+                no_statistically_different_bigger_config.add(current_config);
+                System.out.println("Config: " + current_config.get(0) + " " + current_config.get(1) + " added to no statistically different bigger config.");
+                no_statistically_different_smaller_config.add(smallest_config);
+                System.out.println("Config: " + smallest_config.get(0) + " " + smallest_config.get(1) + " added to no statistically different smaller config.");
+            }
         }
         if(biggest_config != null){
             System.out.println("Biggest config smaller than current config: " + biggest_config.get(0) + " " + biggest_config.get(1));
             boolean distributions = compareConfigs(current_config, biggest_config, game);
             if(distributions){
                 statistically_different = true;
+            }
+            else{
+                no_statistically_different_smaller_config.add(current_config);
+                System.out.println("Config: " + current_config.get(0) + " " + current_config.get(1) + " added to no statistically different smaller config.");
+                no_statistically_different_bigger_config.add(biggest_config);
+                System.out.println("Config: " + biggest_config.get(0) + " " + biggest_config.get(1) + " added to no statistically different bigger config.");
             }
         }
 
