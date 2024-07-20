@@ -51,6 +51,10 @@ public class Distribution {
 
     //t test p value
     public float p_value(Distribution other) {
+
+        if(this.getN() < 2 || other.getN() < 2) {
+            return 1;
+        }
         
         DescriptiveStatistics stats1 = new DescriptiveStatistics();
         for (float value : data) {
@@ -64,6 +68,10 @@ public class Distribution {
         
         TTest tTest = new TTest();
         float p = (float) tTest.tTest(stats1, stats2);
+
+        if(Float.isNaN(p)) {
+            return 1;
+        }
 
         return p;
     }

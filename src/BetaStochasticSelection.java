@@ -70,4 +70,12 @@ public class BetaStochasticSelection implements FinalMoveSelectionStrategy {
     public void customise(String[] arg0) { 
 
     }
+
+    public float getAlpha() {
+        return alpha;
+    }
+
+    public float getBeta() {
+        return beta;
+    }
 }

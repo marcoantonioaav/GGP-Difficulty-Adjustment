@@ -25,6 +25,7 @@ public class AutoDifficultyAdjustment {
         float STAT_P_VALUE = 0.05f;
 
         //variables that will not automatically adjust
+        double THINKING_TIME = 1.0;
         int MAX_STEPS = 100;
         int NUM_GAMES = 100;
         int MIN_GAMES = 3;
@@ -35,7 +36,6 @@ public class AutoDifficultyAdjustment {
         float MAX_CUTOFF_P_VALUE = STAT_P_VALUE;
 
         //variables that will automatically adjust
-        double THINKING_TIME = 1.0;
         float ALPHA_START = 1;
         float ALPHA_STEP_START = 1;
         //float ALPHA_MAX = 20;

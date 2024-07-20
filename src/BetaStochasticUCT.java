@@ -22,4 +22,12 @@ public class BetaStochasticUCT extends MCTS {
             BackpropagationStrategy backpropagationStrategy, FinalMoveSelectionStrategy finalMoveSelectionStrategy) {
         super(selectionStrategy, playoutStrategy, backpropagationStrategy, finalMoveSelectionStrategy);
     }
+
+    public float getAlpha() {
+        return ((BetaStochasticSelection)finalMoveSelectionStrategy).getAlpha();
+    }
+
+    public float getBeta() {
+        return ((BetaStochasticSelection)finalMoveSelectionStrategy).getBeta();
+    }
 }
