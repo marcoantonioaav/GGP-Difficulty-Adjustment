@@ -38,7 +38,7 @@ public class BinarySearchAutoDifficultyAdjustment {
 
         //variables that will automatically adjust
         float ALPHA_BETA_SUM = 1000.0f;
-        int MAX_ITERATIONS = 2;
+        int MAX_ITERATIONS = 3;
 
         float ALPHA_START = ALPHA_BETA_SUM/2;
         float BETA_START = ALPHA_BETA_SUM/2;
@@ -46,7 +46,7 @@ public class BinarySearchAutoDifficultyAdjustment {
         float BETA_STEP_START = ALPHA_BETA_SUM/4;
 
         //game list
-		List<String> GAME_NAMES = List.of("Tic-tac-toe.lud"/*, "Tapatan.lud", "Alquerque.lud", "Reversi.lud" */);
+		List<String> GAME_NAMES = List.of("Tic-tac-toe.lud", "Tapatan.lud", "Alquerque.lud", "Reversi.lud");
 
 		for(String gameName : GAME_NAMES) {
 			System.out.println("New game.");
@@ -82,9 +82,9 @@ public class BinarySearchAutoDifficultyAdjustment {
             all_ai_configs.add(start_config2);
 
             Game game_start = GameLoader.loadGameFromName(gameName);
-            List<Distribution> start_config_distributions2 = getDistributionsIfStatisticallyDifferent(statistically_different_ai_configs, start_config2, game_start);
+            boolean start_config_distributions2 = getDistributionsIfStatisticallyDifferent(statistically_different_ai_configs, start_config2, game_start);
 
-            if(start_config_distributions2 != null){
+            if(start_config_distributions2){
                 statistically_different_ai_configs.add(start_config2);
             }
 
@@ -93,13 +93,13 @@ public class BinarySearchAutoDifficultyAdjustment {
             start_config3.add(ALPHA_BETA_SUM*alpha2);
             all_ai_configs.add(start_config3);
 
-            List<Distribution> start_config_distributions3 = getDistributionsIfStatisticallyDifferent(statistically_different_ai_configs, start_config3, game_start);
+            boolean start_config_distributions3 = getDistributionsIfStatisticallyDifferent(statistically_different_ai_configs, start_config3, game_start);
 
-            if(start_config_distributions3 != null){
+            if(start_config_distributions3){
                 statistically_different_ai_configs.add(start_config3);
             }
 
-            if(start_config_distributions2 == null && start_config_distributions3 == null){
+            if(!start_config_distributions2 && !start_config_distributions3){
                 System.out.println("No statistically different configurations found for start config.");
                 continue;
             }
@@ -130,10 +130,10 @@ public class BinarySearchAutoDifficultyAdjustment {
                     if(alpha < ALPHA_BETA_SUM && alpha > 0 && beta < ALPHA_BETA_SUM && beta > 0 && !all_ai_configs.contains(new_config1)){
                         //make statistical test
                         Game game = GameLoader.loadGameFromName(gameName);
-                        List<Distribution> config1_distributions = getDistributionsIfStatisticallyDifferent(statistically_different_ai_configs, new_config1, game);
+                        boolean config1_distributions = getDistributionsIfStatisticallyDifferent(statistically_different_ai_configs, new_config1, game);
 
                         all_ai_configs.add(new_config1);
-                        if(config1_distributions != null){
+                        if(config1_distributions){
                             statistically_different_ai_configs.add(new_config1);
                             new_config_generated = true;
                         }
@@ -153,10 +153,10 @@ public class BinarySearchAutoDifficultyAdjustment {
                     if(alpha < ALPHA_BETA_SUM && alpha > 0 && beta < ALPHA_BETA_SUM && beta > 0 && !all_ai_configs.contains(new_config2)){
                         //make statistical test
                         Game game = GameLoader.loadGameFromName(gameName);
-                        List<Distribution> config2_distributions = getDistributionsIfStatisticallyDifferent(statistically_different_ai_configs, new_config2, game);
+                        boolean config2_distributions = getDistributionsIfStatisticallyDifferent(statistically_different_ai_configs, new_config2, game);
 
                         all_ai_configs.add(new_config2);
-                        if(config2_distributions != null){
+                        if(config2_distributions){
                             statistically_different_ai_configs.add(new_config2);
                             new_config_generated = true;
                         }
@@ -331,7 +331,7 @@ public class BinarySearchAutoDifficultyAdjustment {
     }
 
     //does the same thing as getDistribution, but makes a test every numGamesStep games and stops if the p value is less than STAT_P_VALUE
-    private static List<Distribution> getDistributionUntilStatDiff(AI agent1, AI agent2, int numGames, Game game, int MAX_STEPS, double THINKING_TIME, List<Distribution> baseDistributions, int numGamesStep){
+    private static boolean getDistributionUntilStatDiff(AI agent1, AI agent2, int numGames, Game game, int MAX_STEPS, double THINKING_TIME, List<Distribution> baseDistributions, int numGamesStep){
         System.out.println("Performing statistical test.");
         List<Distribution> distributions = new ArrayList<>();
 
@@ -463,14 +463,14 @@ public class BinarySearchAutoDifficultyAdjustment {
             System.out.println("Saved " + (numGames-iterations) + " iterations.");
         }
 
-        return distributions;
+        return statisticallyDifferent;
     }
 
     private static String getDistributionName(String agent1, String agent2){
         return agent1 + " " + agent2;
     }
 
-    private static List<Distribution> compareConfigs(List<Float> current_config, List<Float> smallest_config, Game game){
+    private static boolean compareConfigs(List<Float> current_config, List<Float> smallest_config, Game game){
         List<Distribution> current_config_distributions = new ArrayList<>();
 
         BetaStochasticUCT baseAi1 = new BetaStochasticUCT(current_config.get(0), current_config.get(1));
@@ -532,78 +532,12 @@ public class BinarySearchAutoDifficultyAdjustment {
             }
         }
 
-        List<Distribution> newDistribution = getDistributionUntilStatDiff(newAi, baseAi2, STAT_NUM_GAMES, game, MAX_STEPS, THINKING_TIME, baseDistributions, 2);
+        boolean newDistribution = getDistributionUntilStatDiff(newAi, baseAi2, STAT_NUM_GAMES, game, MAX_STEPS, THINKING_TIME, baseDistributions, 2);
 
-        Distribution unifiedBaseDistribution = new Distribution(unifiedBaseDistributionName, new ArrayList<>());
-        Distribution unifiedBaseDistribution2 = new Distribution(unifiedBaseDistributionName2, new ArrayList<>());
-
-        Distribution unifiedNewDistribution = new Distribution(unifiedNewDistributionName, new ArrayList<>());
-
-        for(Distribution dist : baseDistributions){
-            if(dist.getName().equals(unifiedBaseDistributionName)){
-                unifiedBaseDistribution.getData().addAll(dist.getData());
-            }
-            else if(equalAIConfigurations(dist.getName(), unifiedBaseDistributionName)){
-                Distribution invertedDistribution = new Distribution("", new ArrayList<>());
-                for(float value : dist.getData()){
-                    invertedDistribution.getData().add(win_value-value+loss_value);
-                }
-                unifiedBaseDistribution.getData().addAll(invertedDistribution.getData());
-            }
-            if(dist.getName().equals(unifiedBaseDistributionName2)){
-                unifiedBaseDistribution2.getData().addAll(dist.getData());
-            }
-            else if(equalAIConfigurations(dist.getName(), unifiedBaseDistributionName2)){
-                Distribution invertedDistribution = new Distribution("", new ArrayList<>());
-                for(float value : dist.getData()){
-                    invertedDistribution.getData().add(win_value-value+loss_value);
-                }
-                unifiedBaseDistribution2.getData().addAll(invertedDistribution.getData());
-            }
-        }
-
-        for(Distribution dist : newDistribution){
-            if(dist.getName().equals(unifiedNewDistributionName)){
-                unifiedNewDistribution.getData().addAll(dist.getData());
-            }
-            else if(equalAIConfigurations(dist.getName(), unifiedNewDistributionName)){
-                Distribution invertedDistribution = new Distribution("", new ArrayList<>());
-                for(float value : dist.getData()){
-                    invertedDistribution.getData().add(win_value-value+loss_value);
-                }
-                unifiedNewDistribution.getData().addAll(invertedDistribution.getData());
-            }
-        }
-        //perform statistical test
-        float p_value = unifiedBaseDistribution.p_value(unifiedNewDistribution);
-        float p_value2 = unifiedBaseDistribution2.p_value(unifiedNewDistribution);
-
-        if(p_value < STAT_P_VALUE || p_value2 < STAT_P_VALUE){
-            System.out.println("compareConfigs");
-            if(p_value < STAT_P_VALUE){
-                System.out.println("P value statistically significant: " + p_value);
-                System.out.println("Base distribution:" + unifiedBaseDistributionName);
-            }
-            if(p_value2 < STAT_P_VALUE){
-                System.out.println("P value 2 statistically significant: " + p_value2);
-                System.out.println("Base distribution:" + unifiedBaseDistributionName2);
-            }
-            for(Distribution distribution : baseDistribution){
-                current_config_distributions.add(distribution);
-            }
-            for(Distribution distribution : newDistribution){
-                current_config_distributions.add(distribution);
-            }
-            return current_config_distributions;
-        }
-        else{
-            System.out.println("P value: " + p_value);
-            System.out.println("P value 2: " + p_value2);
-            return null;
-        }
+        return newDistribution;
     }
 
-    private static List<Distribution> getDistributionsIfStatisticallyDifferent(List<List<Float>> statistically_different_ai_configs, List<Float> current_config, Game game){
+    private static boolean getDistributionsIfStatisticallyDifferent(List<List<Float>> statistically_different_ai_configs, List<Float> current_config, Game game){
         System.out.println("Current config: " + current_config.get(0) + " " + current_config.get(1));
         List<Distribution> current_config_distributions = new ArrayList<>();
 
@@ -614,51 +548,39 @@ public class BinarySearchAutoDifficultyAdjustment {
         List<Float> biggest_config = findBiggestConfigSmallerThan(statistically_different_ai_configs, current_config);
 
         if(smallest_config == null && biggest_config == null){
-            return null;
+            return false;
         }
 
         //check if current config is already in the list of no statistically different configs
         if(smallest_config != null){
             if(no_statistically_different_bigger_config.contains(current_config) || no_statistically_different_smaller_config.contains(smallest_config)){
-                return null;
+                return false;
             }
         }
         if(biggest_config != null){
             if(no_statistically_different_smaller_config.contains(current_config) || no_statistically_different_bigger_config.contains(biggest_config)){
-                return null;
+                return false;
             }
         }
+
+        boolean statistically_different = false;
 
         //compare current config with smallest and biggest config
         if(smallest_config != null){
             System.out.println("Smallest config bigger than current config: " + smallest_config.get(0) + " " + smallest_config.get(1));
-            List<Distribution> distributions = compareConfigs(current_config, smallest_config, game);
-            if(distributions != null){
-                current_config_distributions.addAll(distributions);
-            }
-            else{
-                no_statistically_different_bigger_config.add(current_config);
-                System.out.println("Config: " + current_config.get(0) + " " + current_config.get(1) + " added to no statistically different bigger config.");
-                no_statistically_different_smaller_config.add(smallest_config);
-                System.out.println("Config: " + smallest_config.get(0) + " " + smallest_config.get(1) + " added to no statistically different smaller config.");
-                return null;
+            boolean distributions = compareConfigs(current_config, smallest_config, game);
+            if(distributions){
+                statistically_different = true;
             }
         }
         if(biggest_config != null){
             System.out.println("Biggest config smaller than current config: " + biggest_config.get(0) + " " + biggest_config.get(1));
-            List<Distribution> distributions = compareConfigs(current_config, biggest_config, game);
-            if(distributions != null){
-                current_config_distributions.addAll(distributions);
-            }
-            else{
-                no_statistically_different_smaller_config.add(current_config);
-                System.out.println("Config: " + current_config.get(0) + " " + current_config.get(1) + " added to no statistically different smaller config.");
-                no_statistically_different_bigger_config.add(biggest_config);
-                System.out.println("Config: " + biggest_config.get(0) + " " + biggest_config.get(1) + " added to no statistically different bigger config.");
-                return null;
+            boolean distributions = compareConfigs(current_config, biggest_config, game);
+            if(distributions){
+                statistically_different = true;
             }
         }
 
-        return current_config_distributions;
+        return statistically_different;
     }
 }
