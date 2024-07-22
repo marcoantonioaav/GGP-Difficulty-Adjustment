@@ -99,7 +99,16 @@ public class BinarySearchAutoDifficultyAdjustment {
             }
 
             if(!start_config_distributions2 && !start_config_distributions3){
-                System.out.println("No statistically different configurations found for start config.");
+                boolean start_config_distributions = compareConfigs(start_config2, start_config3, game_start);
+                if(!start_config_distributions){
+                    System.out.println("No statistically different configurations found for start config.");
+                }
+                else{
+                    statistically_different_ai_configs.add(start_config2);
+                    statistically_different_ai_configs.add(start_config3);
+
+                    System.out.println("Two statistically different configurations found for start config.");
+                }
                 continue;
             }
             
