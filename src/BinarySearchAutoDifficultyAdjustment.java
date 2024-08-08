@@ -23,7 +23,7 @@ public class BinarySearchAutoDifficultyAdjustment {
 
     //statistical test variables
     static float STAT_P_VALUE = 0.05f;
-    static int STAT_NUM_GAMES = 20;
+    static int STAT_NUM_GAMES = 50;
 
     //variables that will not automatically adjust
     static double THINKING_TIME = 1.0;
@@ -39,7 +39,7 @@ public class BinarySearchAutoDifficultyAdjustment {
 
         //variables that will automatically adjust
         float ALPHA_BETA_SUM = 1000.0f;
-        int MAX_ITERATIONS = 3;
+        int MAX_ITERATIONS = 5;
 
         float ALPHA_START = ALPHA_BETA_SUM/2;
         float BETA_START = ALPHA_BETA_SUM/2;
@@ -104,17 +104,29 @@ public class BinarySearchAutoDifficultyAdjustment {
             }
 
             if(!start_config_distributions2 && !start_config_distributions3){
+            	no_statistically_different_bigger_config = new ArrayList<>();
+                no_statistically_different_smaller_config = new ArrayList<>();
+                
                 boolean start_config_distributions = compareConfigs(start_config2, start_config3, game_start);
                 if(!start_config_distributions){
-                    System.out.println("No statistically different configurations found for start config.");
+                    System.out.println("One statistically different configurations found for start config.");
+                    statistically_different_ai_configs = new ArrayList<>();
+                    statistically_different_ai_configs.add(start_config2);
+                    
+                    all_ai_configs = new ArrayList<>();
+                    all_ai_configs.add(start_config2);
                 }
                 else{
+                	statistically_different_ai_configs = new ArrayList<>();
                     statistically_different_ai_configs.add(start_config2);
                     statistically_different_ai_configs.add(start_config3);
+                    
+                    all_ai_configs = new ArrayList<>();
+                	all_ai_configs.add(start_config2);
+                	all_ai_configs.add(start_config3);
 
                     System.out.println("Two statistically different configurations found for start config.");
                 }
-                continue;
             }
             
             //generate the rest of the configs
