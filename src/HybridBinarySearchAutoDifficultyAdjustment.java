@@ -10,11 +10,11 @@ import other.trial.Trial;
 import search.mcts.MCTS;
 import search.minimax.AlphaBetaSearch;
 
-public class BinarySearchAutoDifficultyAdjustment {
+public class HybridBinarySearchAutoDifficultyAdjustment {
 
     //calculate the maximum possible variance for the distribution list
 	
-	private BinarySearchAutoDifficultyAdjustment() {}
+	private HybridBinarySearchAutoDifficultyAdjustment() {}
 
     //game tournament variables
     static float win_value = 1.0f;
@@ -34,11 +34,13 @@ public class BinarySearchAutoDifficultyAdjustment {
     static List<Distribution> baseDistributions = new ArrayList<>();
     static List<List<Float>> replacements = new ArrayList<>();
     static List<List<Float>> replacement_targets = new ArrayList<>();
+    
+    static boolean global_normalization_type = false;
 
 	public static void main(final String[] args) {
 
         //variables that will automatically adjust
-        float ALPHA_BETA_SUM = 1000000.0f;
+        float ALPHA_BETA_SUM = 1000.0f;
         int MAX_ITERATIONS = 5;
 
         float ALPHA_START = ALPHA_BETA_SUM/2;
@@ -47,248 +49,253 @@ public class BinarySearchAutoDifficultyAdjustment {
         float BETA_STEP_START = ALPHA_BETA_SUM/4;
 
         //game list
-		List<String> GAME_NAMES = List.of(/*"Tic-tac-toe.lud",*/ "Tapatan.lud"/*, "Alquerque.lud", "Reversi.lud"*/);
-
-		for(String gameName : GAME_NAMES) {
-			System.out.println("New game.");
-            System.out.println("Game : " + gameName);
-
-            float alpha = ALPHA_START;
-            float beta = BETA_START;
-            float alphaStep = ALPHA_STEP_START;
-            float betaStep = BETA_STEP_START;
-
-            replacements = new ArrayList<>();
-            replacement_targets = new ArrayList<>();
-
-            List<List<Float>> all_ai_configs = new ArrayList<>();
-            List<List<Float>> statistically_different_ai_configs = new ArrayList<>();
-            no_statistically_different_bigger_config = new ArrayList<>();
-            no_statistically_different_smaller_config = new ArrayList<>();
-            baseDistributions = new ArrayList<>();
-
-            //add start config to list
-            List<Float> start_config = new ArrayList<>();
-            start_config.add(alpha);
-            start_config.add(beta);
-            statistically_different_ai_configs.add(start_config);
-            all_ai_configs.add(start_config);
-
-            List<Float> start_config2 = new ArrayList<>();
-            float alpha2 = ALPHA_START/ALPHA_BETA_SUM;
-            float alpha2Step = alpha2/2;
-            for(int i = 0; i < MAX_ITERATIONS; i++){
-                alpha2 += alpha2Step;
-                alpha2Step = alpha2Step/2;
-            }
-            start_config2.add(ALPHA_BETA_SUM*alpha2);
-            start_config2.add(ALPHA_BETA_SUM*(1-alpha2));
-            all_ai_configs.add(start_config2);
-
-            Game game_start = GameLoader.loadGameFromName(gameName);
-            boolean start_config_distributions2 = getDistributionsIfStatisticallyDifferent(statistically_different_ai_configs, start_config2, game_start);
-
-            if(start_config_distributions2){
-                statistically_different_ai_configs.add(start_config2);
-            }
-
-            List<Float> start_config3 = new ArrayList<>();
-            start_config3.add(ALPHA_BETA_SUM*(1-alpha2));
-            start_config3.add(ALPHA_BETA_SUM*alpha2);
-            all_ai_configs.add(start_config3);
-
-            boolean start_config_distributions3 = getDistributionsIfStatisticallyDifferent(statistically_different_ai_configs, start_config3, game_start);
-
-            if(start_config_distributions3){
-                statistically_different_ai_configs.add(start_config3);
-            }
-
-            if(!start_config_distributions2 && !start_config_distributions3){
-            	no_statistically_different_bigger_config = new ArrayList<>();
-                no_statistically_different_smaller_config = new ArrayList<>();
-                
-                boolean start_config_distributions = compareConfigs(start_config2, start_config3, game_start);
-                if(!start_config_distributions){
-                    System.out.println("One statistically different configurations found for start config.");
-                    statistically_different_ai_configs = new ArrayList<>();
-                    statistically_different_ai_configs.add(start_config2);
-                    
-                    all_ai_configs = new ArrayList<>();
-                    all_ai_configs.add(start_config2);
-                }
-                else{
-                	statistically_different_ai_configs = new ArrayList<>();
-                    statistically_different_ai_configs.add(start_config2);
-                    statistically_different_ai_configs.add(start_config3);
-                    
-                    all_ai_configs = new ArrayList<>();
-                	all_ai_configs.add(start_config2);
-                	all_ai_configs.add(start_config3);
-
-                    System.out.println("Two statistically different configurations found for start config.");
-                }
-            }
-            
-            //generate the rest of the configs
-            for(int i = 0; i < MAX_ITERATIONS; i++){
-                List<List<Float>> statistically_different_ai_configs_copy = new ArrayList<>(statistically_different_ai_configs);
-                boolean new_config_generated = false;
-                for(List<Float> config : statistically_different_ai_configs_copy){
-
-                    //print all generated ai configs
-                    System.out.println("All stats different ai configs:");
-                    for(List<Float> generated_config : statistically_different_ai_configs){
-                        System.out.println("Generated config: " + generated_config.get(0) + " " + generated_config.get(1));
-                    }
-
-                    alpha = config.get(0);
-                    beta = config.get(1);
-
-                    alpha += alphaStep;
-                    beta -= betaStep;
-
-                    List<Float> new_config1 = new ArrayList<>();
-                    new_config1.add(alpha);
-                    new_config1.add(beta);
-
-                    //if new config is not already in the list, add it
-                    if(alpha < ALPHA_BETA_SUM && alpha > 0 && beta < ALPHA_BETA_SUM && beta > 0 && !all_ai_configs.contains(new_config1)){
-                        //make statistical test
-                        Game game = GameLoader.loadGameFromName(gameName);
-                        boolean config1_distributions = getDistributionsIfStatisticallyDifferent(statistically_different_ai_configs, new_config1, game);
-
-                        all_ai_configs.add(new_config1);
-                        if(config1_distributions){
-                            statistically_different_ai_configs.add(new_config1);
-                            new_config_generated = true;
-                        }
-                    }
-
-                    alpha = config.get(0);
-                    beta = config.get(1);
-
-                    alpha -= alphaStep;
-                    beta += betaStep;
-
-                    List<Float> new_config2 = new ArrayList<>();
-                    new_config2.add(alpha);
-                    new_config2.add(beta);
-
-                    //if new config is not already in the list, add it
-                    if(alpha < ALPHA_BETA_SUM && alpha > 0 && beta < ALPHA_BETA_SUM && beta > 0 && !all_ai_configs.contains(new_config2)){
-                        //make statistical test
-                        Game game = GameLoader.loadGameFromName(gameName);
-                        boolean config2_distributions = getDistributionsIfStatisticallyDifferent(statistically_different_ai_configs, new_config2, game);
-
-                        all_ai_configs.add(new_config2);
-                        if(config2_distributions){
-                            statistically_different_ai_configs.add(new_config2);
-                            new_config_generated = true;
-                        }
-                    }
-                }
-                if(!new_config_generated){
-                    System.out.println("No new config generated.");
-                    break;
-                }
-                alphaStep /= 2;
-                betaStep /= 2;
-            }
-            //print all generated ai configs
-            System.out.println("All ai configs:");
-            for(List<Float> generated_config : all_ai_configs){
-                System.out.println("Generated config: " + generated_config.get(0) + " " + generated_config.get(1));
-            }
-            //print all statistically different ai configs
-            System.out.println("Statistically different ai configs:");
-            for(List<Float> generated_config : statistically_different_ai_configs){
-                System.out.println("Generated config: " + generated_config.get(0) + " " + generated_config.get(1));
-            }
-
-            //print all replacements
-            // System.out.println("Replacements:");
-            // for(int i = 0; i < replacements.size(); i++){
-            //     System.out.println("Config: " + replacements.get(i).get(0) + " " + replacements.get(i).get(1));
-            //     System.out.println("Target: " + replacement_targets.get(i).get(0) + " " + replacement_targets.get(i).get(1));
-            // }
-
-            //remove duplicates (if any)
-            for(int i = 0; i < replacement_targets.size(); i++){
-                for(int j = 0; j < replacement_targets.size(); j++){
-                    if(i != j){
-                        if(replacement_targets.get(i).equals(replacement_targets.get(j))){
-                            System.out.println("Duplicate found.");
-                            System.out.println("Config 1: " + replacement_targets.get(i).get(0) + " " + replacement_targets.get(i).get(1));
-                            System.out.println("Config 2: " + replacement_targets.get(j).get(0) + " " + replacement_targets.get(j).get(1));
-                            if(replacements.get(i).get(0) > replacements.get(j).get(0)){
-                                replacement_targets.remove(j);
-                                replacements.remove(j);
-                            }
-                            else{
-                                replacement_targets.remove(i);
-                                replacements.remove(i);
-                            }
-                            j--;
-                            if(i > j){
-                                i--;
-                            }
-                        }
-                    }
-                }
-            }
-
-            //sort replacements by alpha using bubble sort
-            for(int i = 0; i < replacements.size(); i++){
-                for(int j = 0; j < replacements.size()-1; j++){
-                    if(replacements.get(j).get(0) < replacements.get(j+1).get(0)){
-                        List<Float> temp = replacements.get(j);
-                        replacements.set(j, replacements.get(j+1));
-                        replacements.set(j+1, temp);
-
-                        temp = replacement_targets.get(j);
-                        replacement_targets.set(j, replacement_targets.get(j+1));
-                        replacement_targets.set(j+1, temp);
-                    }
-                }
-            }
-
-            //print all replacements
-            System.out.println("Replacements:");
-            for(int i = 0; i < replacements.size(); i++){
-                System.out.println("Config: " + replacements.get(i).get(0) + " " + replacements.get(i).get(1));
-                System.out.println("Target: " + replacement_targets.get(i).get(0) + " " + replacement_targets.get(i).get(1));
-            }
-
-            //copy replacements
-            List<List<Float>> replacements_copy = new ArrayList<>(replacements);
-            List<List<Float>> replacement_targets_copy = new ArrayList<>(replacement_targets);
-
-            //attempt to replace configurations
-            for(int i = 0; i < replacements_copy.size(); i++){
-                List<Float> current_config = replacements_copy.get(i);
-                List<Float> target_config = replacement_targets_copy.get(i);
-
-                if(!statistically_different_ai_configs.contains(target_config)){
-                    continue;
-                }
-
-                //clear no statistically different lists
-                no_statistically_different_bigger_config = new ArrayList<>();
-                no_statistically_different_smaller_config = new ArrayList<>();
-
-                boolean replace_config = getDistributionsIfStatisticallyDifferent(statistically_different_ai_configs, current_config, game_start, target_config);
-
-                if(replace_config){
-                    statistically_different_ai_configs.add(current_config);
-                    statistically_different_ai_configs.remove(target_config);
-                }
-            }
-
-            //print all statistically different ai configs
-            System.out.println("Statistically different ai configs after replacements:");
-            for(List<Float> generated_config : statistically_different_ai_configs){
-                System.out.println("Generated config: " + generated_config.get(0) + " " + generated_config.get(1));
-            }
+		List<String> GAME_NAMES = List.of(/*"Tic-tac-toe.lud", "Tapatan.lud", "Alquerque.lud",*/ "Reversi.lud"/**/);
+		List<Boolean> normalization_types = List.of(true, false);
+		
+		for(boolean normalization_type : normalization_types) {
+			System.out.println("normalization_type: " + normalization_type);
+			global_normalization_type = normalization_type;
+			for(String gameName : GAME_NAMES) {
+				System.out.println("New game.");
+	            System.out.println("Game : " + gameName);
+	
+	            float alpha = ALPHA_START;
+	            float beta = BETA_START;
+	            float alphaStep = ALPHA_STEP_START;
+	            float betaStep = BETA_STEP_START;
+	
+	            replacements = new ArrayList<>();
+	            replacement_targets = new ArrayList<>();
+	
+	            List<List<Float>> all_ai_configs = new ArrayList<>();
+	            List<List<Float>> statistically_different_ai_configs = new ArrayList<>();
+	            no_statistically_different_bigger_config = new ArrayList<>();
+	            no_statistically_different_smaller_config = new ArrayList<>();
+	            baseDistributions = new ArrayList<>();
+	
+	            //add start config to list
+	            List<Float> start_config = new ArrayList<>();
+	            start_config.add(alpha);
+	            start_config.add(beta);
+	            statistically_different_ai_configs.add(start_config);
+	            all_ai_configs.add(start_config);
+	
+	            List<Float> start_config2 = new ArrayList<>();
+	            float alpha2 = ALPHA_START/ALPHA_BETA_SUM;
+	            float alpha2Step = alpha2/2;
+	            for(int i = 0; i < MAX_ITERATIONS; i++){
+	                alpha2 += alpha2Step;
+	                alpha2Step = alpha2Step/2;
+	            }
+	            start_config2.add(ALPHA_BETA_SUM*alpha2);
+	            start_config2.add(ALPHA_BETA_SUM*(1-alpha2));
+	            all_ai_configs.add(start_config2);
+	
+	            Game game_start = GameLoader.loadGameFromName(gameName);
+	            boolean start_config_distributions2 = getDistributionsIfStatisticallyDifferent(statistically_different_ai_configs, start_config2, game_start);
+	
+	            if(start_config_distributions2){
+	                statistically_different_ai_configs.add(start_config2);
+	            }
+	
+	            List<Float> start_config3 = new ArrayList<>();
+	            start_config3.add(ALPHA_BETA_SUM*(1-alpha2));
+	            start_config3.add(ALPHA_BETA_SUM*alpha2);
+	            all_ai_configs.add(start_config3);
+	
+	            boolean start_config_distributions3 = getDistributionsIfStatisticallyDifferent(statistically_different_ai_configs, start_config3, game_start);
+	
+	            if(start_config_distributions3){
+	                statistically_different_ai_configs.add(start_config3);
+	            }
+	
+	            if(!start_config_distributions2 && !start_config_distributions3){
+	            	no_statistically_different_bigger_config = new ArrayList<>();
+	                no_statistically_different_smaller_config = new ArrayList<>();
+	                
+	                boolean start_config_distributions = compareConfigs(start_config2, start_config3, game_start);
+	                if(!start_config_distributions){
+	                    System.out.println("One statistically different configurations found for start config.");
+	                    statistically_different_ai_configs = new ArrayList<>();
+	                    statistically_different_ai_configs.add(start_config2);
+	                    
+	                    all_ai_configs = new ArrayList<>();
+	                    all_ai_configs.add(start_config2);
+	                }
+	                else{
+	                	statistically_different_ai_configs = new ArrayList<>();
+	                    statistically_different_ai_configs.add(start_config2);
+	                    statistically_different_ai_configs.add(start_config3);
+	                    
+	                    all_ai_configs = new ArrayList<>();
+	                	all_ai_configs.add(start_config2);
+	                	all_ai_configs.add(start_config3);
+	
+	                    System.out.println("Two statistically different configurations found for start config.");
+	                }
+	            }
+	            
+	            //generate the rest of the configs
+	            for(int i = 0; i < MAX_ITERATIONS; i++){
+	                List<List<Float>> statistically_different_ai_configs_copy = new ArrayList<>(statistically_different_ai_configs);
+	                boolean new_config_generated = false;
+	                for(List<Float> config : statistically_different_ai_configs_copy){
+	
+	                    //print all generated ai configs
+	                    System.out.println("All stats different ai configs:");
+	                    for(List<Float> generated_config : statistically_different_ai_configs){
+	                        System.out.println("Generated config: " + generated_config.get(0) + " " + generated_config.get(1));
+	                    }
+	
+	                    alpha = config.get(0);
+	                    beta = config.get(1);
+	
+	                    alpha += alphaStep;
+	                    beta -= betaStep;
+	
+	                    List<Float> new_config1 = new ArrayList<>();
+	                    new_config1.add(alpha);
+	                    new_config1.add(beta);
+	
+	                    //if new config is not already in the list, add it
+	                    if(alpha < ALPHA_BETA_SUM && alpha > 0 && beta < ALPHA_BETA_SUM && beta > 0 && !all_ai_configs.contains(new_config1)){
+	                        //make statistical test
+	                        Game game = GameLoader.loadGameFromName(gameName);
+	                        boolean config1_distributions = getDistributionsIfStatisticallyDifferent(statistically_different_ai_configs, new_config1, game);
+	
+	                        all_ai_configs.add(new_config1);
+	                        if(config1_distributions){
+	                            statistically_different_ai_configs.add(new_config1);
+	                            new_config_generated = true;
+	                        }
+	                    }
+	
+	                    alpha = config.get(0);
+	                    beta = config.get(1);
+	
+	                    alpha -= alphaStep;
+	                    beta += betaStep;
+	
+	                    List<Float> new_config2 = new ArrayList<>();
+	                    new_config2.add(alpha);
+	                    new_config2.add(beta);
+	
+	                    //if new config is not already in the list, add it
+	                    if(alpha < ALPHA_BETA_SUM && alpha > 0 && beta < ALPHA_BETA_SUM && beta > 0 && !all_ai_configs.contains(new_config2)){
+	                        //make statistical test
+	                        Game game = GameLoader.loadGameFromName(gameName);
+	                        boolean config2_distributions = getDistributionsIfStatisticallyDifferent(statistically_different_ai_configs, new_config2, game);
+	
+	                        all_ai_configs.add(new_config2);
+	                        if(config2_distributions){
+	                            statistically_different_ai_configs.add(new_config2);
+	                            new_config_generated = true;
+	                        }
+	                    }
+	                }
+	                if(!new_config_generated){
+	                    System.out.println("No new config generated.");
+	                    break;
+	                }
+	                alphaStep /= 2;
+	                betaStep /= 2;
+	            }
+	            //print all generated ai configs
+	            System.out.println("All ai configs:");
+	            for(List<Float> generated_config : all_ai_configs){
+	                System.out.println("Generated config: " + generated_config.get(0) + " " + generated_config.get(1));
+	            }
+	            //print all statistically different ai configs
+	            System.out.println("Statistically different ai configs:");
+	            for(List<Float> generated_config : statistically_different_ai_configs){
+	                System.out.println("Generated config: " + generated_config.get(0) + " " + generated_config.get(1));
+	            }
+	
+	            //print all replacements
+	            // System.out.println("Replacements:");
+	            // for(int i = 0; i < replacements.size(); i++){
+	            //     System.out.println("Config: " + replacements.get(i).get(0) + " " + replacements.get(i).get(1));
+	            //     System.out.println("Target: " + replacement_targets.get(i).get(0) + " " + replacement_targets.get(i).get(1));
+	            // }
+	
+	            //remove duplicates (if any)
+	            for(int i = 0; i < replacement_targets.size(); i++){
+	                for(int j = 0; j < replacement_targets.size(); j++){
+	                    if(i != j){
+	                        if(replacement_targets.get(i).equals(replacement_targets.get(j))){
+	                            System.out.println("Duplicate found.");
+	                            System.out.println("Config 1: " + replacement_targets.get(i).get(0) + " " + replacement_targets.get(i).get(1));
+	                            System.out.println("Config 2: " + replacement_targets.get(j).get(0) + " " + replacement_targets.get(j).get(1));
+	                            if(replacements.get(i).get(0) > replacements.get(j).get(0)){
+	                                replacement_targets.remove(j);
+	                                replacements.remove(j);
+	                            }
+	                            else{
+	                                replacement_targets.remove(i);
+	                                replacements.remove(i);
+	                            }
+	                            j--;
+	                            if(i > j){
+	                                i--;
+	                            }
+	                        }
+	                    }
+	                }
+	            }
+	
+	            //sort replacements by alpha using bubble sort
+	            for(int i = 0; i < replacements.size(); i++){
+	                for(int j = 0; j < replacements.size()-1; j++){
+	                    if(replacements.get(j).get(0) < replacements.get(j+1).get(0)){
+	                        List<Float> temp = replacements.get(j);
+	                        replacements.set(j, replacements.get(j+1));
+	                        replacements.set(j+1, temp);
+	
+	                        temp = replacement_targets.get(j);
+	                        replacement_targets.set(j, replacement_targets.get(j+1));
+	                        replacement_targets.set(j+1, temp);
+	                    }
+	                }
+	            }
+	
+	            //print all replacements
+	            System.out.println("Replacements:");
+	            for(int i = 0; i < replacements.size(); i++){
+	                System.out.println("Config: " + replacements.get(i).get(0) + " " + replacements.get(i).get(1));
+	                System.out.println("Target: " + replacement_targets.get(i).get(0) + " " + replacement_targets.get(i).get(1));
+	            }
+	
+	            //copy replacements
+	            List<List<Float>> replacements_copy = new ArrayList<>(replacements);
+	            List<List<Float>> replacement_targets_copy = new ArrayList<>(replacement_targets);
+	
+	            //attempt to replace configurations
+	            for(int i = 0; i < replacements_copy.size(); i++){
+	                List<Float> current_config = replacements_copy.get(i);
+	                List<Float> target_config = replacement_targets_copy.get(i);
+	
+	                if(!statistically_different_ai_configs.contains(target_config)){
+	                    continue;
+	                }
+	
+	                //clear no statistically different lists
+	                no_statistically_different_bigger_config = new ArrayList<>();
+	                no_statistically_different_smaller_config = new ArrayList<>();
+	
+	                boolean replace_config = getDistributionsIfStatisticallyDifferent(statistically_different_ai_configs, current_config, game_start, target_config);
+	
+	                if(replace_config){
+	                    statistically_different_ai_configs.add(current_config);
+	                    statistically_different_ai_configs.remove(target_config);
+	                }
+	            }
+	
+	            //print all statistically different ai configs
+	            System.out.println("Statistically different ai configs after replacements:");
+	            for(List<Float> generated_config : statistically_different_ai_configs){
+	                System.out.println("Generated config: " + generated_config.get(0) + " " + generated_config.get(1));
+	            }
+			}
 		}
         System.out.println("End of program.");
 	}
@@ -346,7 +353,7 @@ public class BinarySearchAutoDifficultyAdjustment {
         }
     }
 
-    private static boolean equalAIConfigurations(BetaStochasticUCT ai1, BetaStochasticUCT ai2){
+    private static boolean equalAIConfigurations(NormHybridMinimaxMCTS ai1, NormHybridMinimaxMCTS ai2){
         return ai1.getAlpha() == ai2.getAlpha() && ai1.getBeta() == ai2.getBeta();
     }
 
@@ -583,10 +590,10 @@ public class BinarySearchAutoDifficultyAdjustment {
     private static boolean compareConfigs(List<Float> current_config, List<Float> smallest_config, Game game){
         List<Distribution> current_config_distributions = new ArrayList<>();
 
-        BetaStochasticUCT baseAi1 = new BetaStochasticUCT(current_config.get(0), current_config.get(1), true);
-        BetaStochasticUCT baseAi2 = new BetaStochasticUCT(current_config.get(0), current_config.get(1), true);
+        NormHybridMinimaxMCTS baseAi1 = new NormHybridMinimaxMCTS(current_config.get(0), current_config.get(1), global_normalization_type);
+        NormHybridMinimaxMCTS baseAi2 = new NormHybridMinimaxMCTS(current_config.get(0), current_config.get(1), global_normalization_type);
 
-        BetaStochasticUCT newAi = new BetaStochasticUCT(smallest_config.get(0), smallest_config.get(1), true);
+        NormHybridMinimaxMCTS newAi = new NormHybridMinimaxMCTS(smallest_config.get(0), smallest_config.get(1), global_normalization_type);
 
         String unifiedBaseDistributionName = getDistributionName(baseAi1.friendlyName(), baseAi2.friendlyName());
         String unifiedBaseDistributionName2 = getDistributionName(newAi.friendlyName(), newAi.friendlyName());

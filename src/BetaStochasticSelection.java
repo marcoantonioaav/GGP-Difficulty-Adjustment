@@ -12,6 +12,7 @@ public class BetaStochasticSelection implements FinalMoveSelectionStrategy {
 	
     private float alpha = 0.5f;
     private float beta = 0.5f;
+    private boolean minMaxNormalize = false;
 
     public static final float MAX = 1;
     public static final float MIN = -MAX;
@@ -20,10 +21,18 @@ public class BetaStochasticSelection implements FinalMoveSelectionStrategy {
     public BetaStochasticSelection(float alpha, float beta) {
         this.alpha = alpha;
         this.beta = beta;
+        this.minMaxNormalize = false;
+    }
+
+    public BetaStochasticSelection(float alpha, float beta, boolean minMaxNormalize) {
+        this.alpha = alpha;
+        this.beta = beta;
+        this.minMaxNormalize = minMaxNormalize;
     }
 
     @Override
     public Move selectMove(BaseNode rootNode) {
+    	System.out.println("test");
         State rootState = rootNode.contextRef().state();
         int moverAgent = rootState.playerToAgent(rootState.mover());
         int numChildren = rootNode.numLegalMoves();
@@ -42,6 +51,28 @@ public class BetaStochasticSelection implements FinalMoveSelectionStrategy {
 
     private Move selectMoveByScore(HashMap<Move, Float> ratedMoves) {
         ArrayList<Move> moves = new ArrayList<>(ratedMoves.keySet());
+
+        float min = Float.POSITIVE_INFINITY;
+        float max = Float.NEGATIVE_INFINITY;
+
+        if(this.minMaxNormalize && moves.size() > 1) {
+            for(Move move : moves) {
+                float score = ratedMoves.get(move);
+                if(score < min) {
+                    min = score;
+                }
+                if(score > max) {
+                    max = score;
+                }
+            }
+            if(min != max && min != Float.POSITIVE_INFINITY && max != Float.NEGATIVE_INFINITY) {
+                for(Move move : moves) {
+                    float score = ratedMoves.get(move);
+                    ratedMoves.put(move, (score - min) / (max - min));
+                }
+            }
+        }
+
         float moveQuality = getRandomOnBeta(alpha, beta);
         Move selectedMove = null;
         float selectedQualityDifference = Float.POSITIVE_INFINITY;

@@ -18,6 +18,16 @@ public class BetaStochasticUCT extends MCTS {
         this.friendlyName = "UCT alpha:" + alpha + " beta:" + beta;
     }
 
+    public BetaStochasticUCT(float alpha, float beta, boolean minMaxNormalize) {
+        super(
+            new UCB1(Math.sqrt(2.0)), 
+            new RandomPlayout(200), 
+            new MonteCarloBackprop(), 
+            new BetaStochasticSelection(alpha, beta, minMaxNormalize)
+            );
+        this.friendlyName = "UCT alpha:" + alpha + " beta:" + beta;
+    }
+
     public BetaStochasticUCT(SelectionStrategy selectionStrategy, PlayoutStrategy playoutStrategy,
             BackpropagationStrategy backpropagationStrategy, FinalMoveSelectionStrategy finalMoveSelectionStrategy) {
         super(selectionStrategy, playoutStrategy, backpropagationStrategy, finalMoveSelectionStrategy);
